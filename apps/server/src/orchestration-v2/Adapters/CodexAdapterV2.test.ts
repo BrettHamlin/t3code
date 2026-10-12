@@ -425,7 +425,7 @@ describe("CodexAdapterV2 runtime policy", () => {
       assert.equal(autoAcceptEdits.sandboxPolicy?.type, "workspaceWrite");
       assert.equal(auto.approvalPolicy, "on-request");
       assert.equal(auto.approvalsReviewer, "auto_review");
-      assert.equal(auto.sandboxPolicy?.type, "workspaceWrite");
+      assert.deepEqual(auto.sandboxPolicy, { type: "workspaceWrite", networkAccess: true });
       assert.equal(fullAccess.approvalPolicy, "never");
       assert.equal(fullAccess.approvalsReviewer, "user");
       assert.equal(fullAccess.sandboxPolicy?.type, "dangerFullAccess");
@@ -454,6 +454,29 @@ describe("CodexAdapterV2 runtime policy", () => {
 
       assert.equal(params.approvalPolicy, "on-request");
       assert.equal(params.sandboxPolicy?.type, "readOnly");
+    }),
+  );
+
+  it.effect("preserves an explicit network restriction in Auto mode", () =>
+    Effect.gen(function* () {
+      const params = yield* CodexAdapterV2.buildCodexTurnStartParams({
+        nativeThreadId: "native-auto-network-denied",
+        codexInput: [{ type: "text", text: "test" }],
+        runtimePolicy: {
+          runtimeMode: "auto",
+          interactionMode: "default",
+          cwd: null,
+          sandboxPolicy: { type: "workspaceWrite", networkAccess: false },
+        },
+        modelSelection: {
+          instanceId: ProviderInstanceId.make("codex"),
+          model: "gpt-5.4",
+        },
+      });
+
+      assert.equal(params.approvalPolicy, "on-request");
+      assert.equal(params.approvalsReviewer, "auto_review");
+      assert.deepEqual(params.sandboxPolicy, { type: "workspaceWrite", networkAccess: false });
     }),
   );
 
